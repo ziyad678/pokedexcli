@@ -35,20 +35,20 @@ func commandCatch(cfg *config, args ...string) error {
 	return nil
 }
 
-func (cfg *config) getPokemon(name string) (PokemonResponse, error) {
+func (cfg *config) getPokemon(name string) (Pokemon, error) {
 	// Define the API endpoint URL
 	url := "https://pokeapi.co/api/v2/pokemon/" + name
 
 	log.Println("Inside getPokemon, going to hit", url)
 	log.Printf("Checking if entry for %v exists in cache\n", url)
-	var apiResponse PokemonResponse
+	var apiResponse Pokemon
 	cacheEntry, found := cfg.LocCache.Get(url)
 	if found {
 		log.Printf("Found entry in cache for %v\n", url)
 		err := json.Unmarshal(cacheEntry, &apiResponse)
 		if err != nil {
 			log.Printf("Error unmarshaling JSON from cache entry: %v", err)
-			return PokemonResponse{}, err
+			return Pokemon{}, err
 		}
 		log.Printf("Returning cache entry for %v\n", url)
 		return apiResponse, nil
@@ -58,7 +58,7 @@ func (cfg *config) getPokemon(name string) (PokemonResponse, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Printf("Error fetching URL %s: %v", url, err)
-		return PokemonResponse{}, err
+		return Pokemon{}, err
 	}
 
 	defer resp.Body.Close()
@@ -67,20 +67,20 @@ func (cfg *config) getPokemon(name string) (PokemonResponse, error) {
 	if resp.StatusCode == http.StatusNotFound {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		log.Printf("Error: Received non-404 status code: %d\nResponse Body: %s", resp.StatusCode, string(bodyBytes))
-		return PokemonResponse{}, errors.New("invalid Pokemon name. Please enter correct Pokemon name")
+		return Pokemon{}, errors.New("invalid Pokemon name. Please enter correct Pokemon name")
 	}
 	if resp.StatusCode != http.StatusOK {
 		// Read the body even on error for potential error messages from the API
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		log.Printf("Error: Received non-200 status code: %d\nResponse Body: %s", resp.StatusCode, string(bodyBytes))
-		return PokemonResponse{}, errors.New("failed to get 200 respone to API call")
+		return Pokemon{}, errors.New("failed to get 200 respone to API call")
 	}
 	log.Printf("Reading response body for %v\n", url)
 	// Read the response body
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalf("Error reading response body: %v", err)
-		return PokemonResponse{}, err
+		return Pokemon{}, err
 	}
 	//add to cache
 	log.Printf("Adding entry for %v in cache\n", url)
@@ -90,7 +90,7 @@ func (cfg *config) getPokemon(name string) (PokemonResponse, error) {
 	err = json.Unmarshal(bodyBytes, &apiResponse)
 	if err != nil {
 		log.Fatalf("Error unmarshaling JSON: %v", err)
-		return PokemonResponse{}, err
+		return Pokemon{}, err
 	}
 	log.Printf("Leaving explroeLocation for %v\n", url)
 	return apiResponse, nil

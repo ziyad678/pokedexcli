@@ -12,7 +12,7 @@ type config struct {
 	Previous *string
 	Commands map[string]cliCommand
 	LocCache pokecache.Cache
-	Pokemons map[string]PokemonResponse
+	Pokemons map[string]Pokemon
 }
 
 type Location struct {
