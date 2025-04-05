@@ -6,42 +6,49 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 )
 
-func commandExplore(cfg *config, args ...string) error {
-	log.Println("Entering location explore function")
+func commandCatch(cfg *config, args ...string) error {
+	log.Println("Entering Catch function")
 	if len(args) < 1 {
-		log.Println("No location provided to explore. returning")
-		return errors.New("please enter a location to be explroed")
+		log.Println("No pokemon name provided to catch. returning")
+		return errors.New("please enter a pokemon name to catch")
 	}
-	exploreResult, err := cfg.exploreLocation(args[0])
+	pokemonResult, err := cfg.getPokemon(args[0])
 	if err != nil {
-		log.Printf("ExploreLocation return an errorr for %v. Error: %v\n", args[0], err)
+		log.Printf("GetPokemon return an errorr for %v. Error: %v\n", args[0], err)
 		return err
 	}
-	fmt.Printf("Exploring %v...\n", args[0])
-	for _, pokemon := range exploreResult.PokemonEncounters {
+	res := rand.Intn(pokemonResult.BaseExperience)
 
-		fmt.Println(pokemon.Pokemon.Name)
+	fmt.Printf("Throwing a Pokeball at %s...\n", pokemonResult.Name)
+	if res > 40 {
+		fmt.Printf("%s escaped!\n", pokemonResult.Name)
+		return nil
 	}
+
+	fmt.Printf("%s was caught!\n", pokemonResult.Name)
+	cfg.Pokemons[pokemonResult.Name] = pokemonResult
+
 	return nil
 }
 
-func (cfg *config) exploreLocation(location string) (ExploreLocationAreaResponse, error) {
+func (cfg *config) getPokemon(name string) (PokemonResponse, error) {
 	// Define the API endpoint URL
-	url := "https://pokeapi.co/api/v2/location-area/" + location
+	url := "https://pokeapi.co/api/v2/pokemon/" + name
 
-	log.Println("Inside exploreLocation, going to hit", url)
+	log.Println("Inside getPokemon, going to hit", url)
 	log.Printf("Checking if entry for %v exists in cache\n", url)
-	var apiResponse ExploreLocationAreaResponse
+	var apiResponse PokemonResponse
 	cacheEntry, found := cfg.LocCache.Get(url)
 	if found {
 		log.Printf("Found entry in cache for %v\n", url)
 		err := json.Unmarshal(cacheEntry, &apiResponse)
 		if err != nil {
 			log.Printf("Error unmarshaling JSON from cache entry: %v", err)
-			return ExploreLocationAreaResponse{}, err
+			return PokemonResponse{}, err
 		}
 		log.Printf("Returning cache entry for %v\n", url)
 		return apiResponse, nil
@@ -51,7 +58,7 @@ func (cfg *config) exploreLocation(location string) (ExploreLocationAreaResponse
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Printf("Error fetching URL %s: %v", url, err)
-		return ExploreLocationAreaResponse{}, err
+		return PokemonResponse{}, err
 	}
 
 	defer resp.Body.Close()
@@ -60,20 +67,20 @@ func (cfg *config) exploreLocation(location string) (ExploreLocationAreaResponse
 	if resp.StatusCode == http.StatusNotFound {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		log.Printf("Error: Received non-404 status code: %d\nResponse Body: %s", resp.StatusCode, string(bodyBytes))
-		return ExploreLocationAreaResponse{}, errors.New("invalid location. Please enter correct location name")
+		return PokemonResponse{}, errors.New("invalid Pokemon name. Please enter correct Pokemon name")
 	}
 	if resp.StatusCode != http.StatusOK {
 		// Read the body even on error for potential error messages from the API
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		log.Printf("Error: Received non-200 status code: %d\nResponse Body: %s", resp.StatusCode, string(bodyBytes))
-		return ExploreLocationAreaResponse{}, errors.New("failed to get 200 respone to API call")
+		return PokemonResponse{}, errors.New("failed to get 200 respone to API call")
 	}
 	log.Printf("Reading response body for %v\n", url)
 	// Read the response body
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalf("Error reading response body: %v", err)
-		return ExploreLocationAreaResponse{}, err
+		return PokemonResponse{}, err
 	}
 	//add to cache
 	log.Printf("Adding entry for %v in cache\n", url)
@@ -83,7 +90,7 @@ func (cfg *config) exploreLocation(location string) (ExploreLocationAreaResponse
 	err = json.Unmarshal(bodyBytes, &apiResponse)
 	if err != nil {
 		log.Fatalf("Error unmarshaling JSON: %v", err)
-		return ExploreLocationAreaResponse{}, err
+		return PokemonResponse{}, err
 	}
 	log.Printf("Leaving explroeLocation for %v\n", url)
 	return apiResponse, nil

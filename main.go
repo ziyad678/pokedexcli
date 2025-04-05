@@ -12,6 +12,7 @@ func main() {
 	cfg := config{}
 	cfg.Commands = cfg.initCommands()
 	cfg.LocCache = pokecache.NewCache(15)
+	cfg.Pokemons = map[string]PokemonResponse{}
 	logFileName := "app.log"
 	//logFile, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	logFile, err := os.Create(logFileName)
@@ -21,7 +22,6 @@ func main() {
 	defer logFile.Close()
 	log.SetOutput(logFile)
 	cfg.repl()
-
 
 }
 
