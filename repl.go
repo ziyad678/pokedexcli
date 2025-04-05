@@ -21,7 +21,14 @@ func (cfg *config) repl() {
 			fmt.Print("Pokedex > ")
 			continue
 		}
-		command.callback()
+		args := []string{}
+		if len(cleaned) > 1 {
+			args = cleaned[1:]
+		}
+		err := command.callback(cfg,args...)
+		if err != nil {
+			fmt.Println(err)
+		}
 		fmt.Print("Pokedex > ")
 	}
 }

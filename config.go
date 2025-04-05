@@ -1,14 +1,19 @@
 package main
 
+import pokecache "github.com/ziyad678/pokedexcli/internal"
+
+
 type cliCommand struct {
 	name        string
 	description string
-	callback    func() error
+	callback    func(*config, ...string) error
 }
 type config struct {
-	Next     string
-	Previous string
+	Next     *string
+	Previous *string
 	Commands map[string]cliCommand
+	LocCache pokecache.Cache
+	Pokemons []string
 }
 
 type Location struct {
